@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Pagination with Sorting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        table {
+            width: 80%;
+            margin: auto;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+        th {
+            background-color: lightgray;
+        }
+        .pagination {
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Employee Table with Sorting & Pagination</h2>
+
+    <!-- Sorting and Pagination Controls -->
+    <label for="pageSize">Items per page:</label>
+    <select id="pageSize" onchange="fetchEmployees()">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+    </select>
+
+    <button onclick="prevPage()">Previous</button>
+    <span id="pageInfo">Page No: 1</span>
+    <button onclick="nextPage()">Next</button>
+
+    <p id="showingInfo">Showing 1-10 / 50</p>
+
+    <!-- Employee Table -->
+    <table>
+        <thead>
+            <tr>
+                <th onclick="changeSorting('id')">ID <span id="idSort"></span></th>
+                <th onclick="changeSorting('name')">Name <span id="nameSort"></span></th>
+                <th onclick="changeSorting('department')">Department <span id="departmentSort"></span></th>
+                <th onclick="changeSorting('salary')">Salary <span id="salarySort"></span></th>
+            </tr>
+        </thead>
+        <tbody id="employeeTable"></tbody>
+    </table>
+
+    <script>
+        let currentPage = 0;
+        let pageSize = 10;
+        let totalRecords = 50; // You should get this dynamically from the backend
+        let sortBy = "id"; // Default sorting column
+        let sortDir = "asc"; // Default sorting direction
+
+        function fetchEmployees() {
+            pageSize = document.getElementById("pageSize").value;
+
+            fetch(`http://localhost:8080/employees/${currentPage}/${pageSize}/${sortBy}/${sortDir}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayEmployees(data.content);
+                    totalRecords = data.totalElements; // Update total records
+                    updatePaginationInfo();
+                    updateSortIcons();
+                })
+                .catch(error => console.error("Error fetching data:", error));
+        }
+
+        function displayEmployees(employees) {
+            let table = document.getElementById("employeeTable");
+            table.innerHTML = "";
+            employees.forEach(emp => {
+                let row = `<tr>
+                    <td>${emp.id}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.department}</td>
+                    <td>${emp.salary}</td>
+                </tr>`;
+                table.innerHTML += row;
+            });
+        }
+
+        function updatePaginationInfo() {
+            document.getElementById("pageInfo").innerText = `Page No: ${currentPage + 1}`;
+            let startRecord = currentPage * pageSize + 1;
+            let endRecord = Math.min((currentPage + 1) * pageSize, totalRecords);
+            document.getElementById("showingInfo").innerText = `Showing ${startRecord}-${endRecord} / ${totalRecords}`;
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                fetchEmployees();
+            }
+        }
+
+        function nextPage() {
+            if ((currentPage + 1) * pageSize < totalRecords) {
+                currentPage++;
+                fetchEmployees();
+            }
+        }
+
+        function changeSorting(column) {
+            if (sortBy === column) {
+                sortDir = sortDir === "asc" ? "desc" : "asc";
+            } else {
+                sortBy = column;
+                sortDir = "asc";
+            }
+            fetchEmployees();
+        }
+
+        function updateSortIcons() {
+            let columns = ["id", "name", "department", "salary"];
+            columns.forEach(col => {
+                document.getElementById(`${col}Sort`).innerHTML = "";
+            });
+
+            let arrow = sortDir === "asc" ? "↑" : "↓";
+            document.getElementById(`${sortBy}Sort`).innerHTML = arrow;
+        }
+
+        // Load initial data
+        fetchEmployees();
+    </script>
+
+</body>
+</html>
